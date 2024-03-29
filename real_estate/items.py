@@ -8,5 +8,14 @@ import scrapy
 
 class RealEstateItem(scrapy.Item):
     # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+    address = scrapy.Field()
+    price_usd = scrapy.Field()
+    price_amd = scrapy.Field()
+    price_rub = scrapy.Field()
+    seller = scrapy.Field()
+    seller_id = scrapy.Field()
+    description = scrapy.Field()
+    placesby = scrapy.Field()
+    posted_date = scrapy.Field()
+    renewed_date = scrapy.Field()
+    attributes = scrapy.Field()
