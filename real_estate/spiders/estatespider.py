@@ -48,7 +48,7 @@ class EstatespiderSpider(scrapy.Spider):
         estates_url_list.extend([temp_estate.css('a').attrib['href'] for temp_estate in temp_page_estate])
 
         for temp_rev_url in estates_url_list:
-            temp_url = f"https://www.list.am{temp_rev_url}"
+            temp_url = f"https://www.list.am/en{temp_rev_url}"
             yield scrapy.Request(temp_url, callback=self.parse_estate_page)
 
         next_page = response.css('div.dlf').css('a')[-1].attrib['href']
@@ -58,8 +58,17 @@ class EstatespiderSpider(scrapy.Spider):
 
     def parse_estate_page(self, response):
         price_seller_list = response.css('div.price').css('span')
-        description_text = re.findall(r'itemprop="description">(.*)<div', response.css('div.body').get())[0]
-        placesby_text = ', '.join([elem.css('td')[0].css('::text').get() for elem in response.css('table.poi')[0].css('tr')])
+
+        try:
+            description_text = re.findall(r'itemprop="description">(.*)<div', response.css('div.body').get())[0]
+        except:
+            description_text = None
+
+        try:
+            placesby_text = ', '.join([elem.css('td')[0].css('::text').get() for elem in response.css('table.poi')[0].css('tr')])
+        except:
+            placesby_text = None
+
         posted_date = response.css('div.footer span')[1].css('::text').get()
         renewed_date = response.css('div.footer span')[2].css('::text').get()
 
@@ -85,13 +94,13 @@ class EstatespiderSpider(scrapy.Spider):
         #     }
         #     info_dict.update(temp_attr_dict)
 
-        attributes_list = []
+        attributes_dict = {}
         for estate_attr in estate_attributes:
-            temp_attr_dict = [
-                (elem.css('div.t::text').get(), elem.css('div.i::text').get()) 
-                for elem in estate_attr[0].css('div.c')
-            ]
-            attributes_list.extend(temp_attr_dict)
+            temp_attr_dict = {
+                elem.css('div.t::text').get(): elem.css('div.i::text').get()
+                for elem in estate_attr.css('div.c')
+            }
+            attributes_dict.update(temp_attr_dict)
 
         estate_item = RealEstateItem()
         estate_item['address'] = response.css('div.loc a::text').get()
@@ -104,7 +113,23 @@ class EstatespiderSpider(scrapy.Spider):
         estate_item['placesby'] = placesby_text
         estate_item['posted_date'] = posted_date
         estate_item['renewed_date'] = renewed_date
-        estate_item['attributes'] = attributes_list
+        # estate_item['attributes'] = attributes_list
+        estate_item['construction_type'] = attributes_dict.get('Construction Type', None)
+        estate_item['new_construction'] = attributes_dict.get('New Construction', None)
+        estate_item['elevator'] = attributes_dict.get('Elevator', None)
+        estate_item['floors_in_the_building'] = attributes_dict.get('Floors in the Building', None)
+        estate_item['the_house_has'] = attributes_dict.get('The House Has', None)
+        estate_item['parking'] = attributes_dict.get('Parking', None)
+        estate_item['floor_area'] = attributes_dict.get('Floor Area', None)
+        estate_item['number_of_rooms'] = attributes_dict.get('Number of Rooms', None)
+        estate_item['number_of_bathrooms'] = attributes_dict.get('Number of Bathrooms', None)
+        estate_item['ceiling_height'] = attributes_dict.get('Ceiling Height', None)
+        estate_item['floor'] = attributes_dict.get('Floor', None)
+        estate_item['balcony'] = attributes_dict.get('Balcony', None)
+        estate_item['furniture'] = attributes_dict.get('Furniture', None)
+        estate_item['renovation'] = attributes_dict.get('Renovation', None)
+        estate_item['appliances'] = attributes_dict.get('Appliances', None)
+        estate_item['window_views'] = attributes_dict.get('Window Views', None)
 
         yield estate_item
 
