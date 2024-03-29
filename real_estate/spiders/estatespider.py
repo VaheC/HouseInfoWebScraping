@@ -1,5 +1,6 @@
 import scrapy
 import re
+from real_estate.items import RealEstateItem
 
 
 class EstatespiderSpider(scrapy.Spider):
@@ -50,27 +51,32 @@ class EstatespiderSpider(scrapy.Spider):
             temp_url = f"https://www.list.am{temp_rev_url}"
             yield scrapy.Request(temp_url, callback=self.parse_estate_page)
 
+        next_page = response.css('div.dlf').css('a')[-1].attrib['href']
+        next_page_url = f"https://list.am{next_page}"
+        if next_page_url is not None:
+            yield response.follow(next_page_url, callback=self.parse)
+
     def parse_estate_page(self, response):
         price_seller_list = response.css('div.price').css('span')
-        # description_text = re.findall(r'itemprop="description">(.*)<div', response.css('div.body').get())[0]
-        # placesby_text = ', '.join([elem.css('td')[0].css('::text').get() for elem in response.css('table.poi')[0].css('tr')])
-        # posted_date = response.css('div.footer span')[1].css('::text').get()
-        # renewed_date = response.css('div.footer span')[2].css('::text').get()
+        description_text = re.findall(r'itemprop="description">(.*)<div', response.css('div.body').get())[0]
+        placesby_text = ', '.join([elem.css('td')[0].css('::text').get() for elem in response.css('table.poi')[0].css('tr')])
+        posted_date = response.css('div.footer span')[1].css('::text').get()
+        renewed_date = response.css('div.footer span')[2].css('::text').get()
 
-        info_dict = {
-            'address': response.css('div.loc a::text').get(),
-            'price_usd': price_seller_list[2].css('::text').get(),
-            'price_amd': price_seller_list[3].css('::text').get(),
-            'price_rub': price_seller_list[4].css('::text').get(),
-            'seller': price_seller_list[5].css('::text').get(),
-            'seller_id': response.css('div#uinfo a').attrib['href'].split('/')[-1],
-            # 'description': description_text,
-            # 'placesby': placesby_text,
-            # 'posted_date': posted_date,
-            # 'renewed_date': renewed_date
-        }
+        # info_dict = {
+        #     'address': response.css('div.loc a::text').get(),
+        #     'price_usd': price_seller_list[2].css('::text').get(),
+        #     'price_amd': price_seller_list[3].css('::text').get(),
+        #     'price_rub': price_seller_list[4].css('::text').get(),
+        #     'seller': price_seller_list[5].css('::text').get(),
+        #     'seller_id': response.css('div#uinfo a').attrib['href'].split('/')[-1],
+        #     'description': description_text,
+        #     'placesby': placesby_text,
+        #     'posted_date': posted_date,
+        #     'renewed_date': renewed_date
+        # }
 
-        # estate_attributes = response.css('div.attr.g')
+        estate_attributes = response.css('div.attr.g')
 
         # for estate_attr in estate_attributes:
         #     temp_attr_dict = {
@@ -79,6 +85,27 @@ class EstatespiderSpider(scrapy.Spider):
         #     }
         #     info_dict.update(temp_attr_dict)
 
-        yield info_dict
+        attributes_list = []
+        for estate_attr in estate_attributes:
+            temp_attr_dict = [
+                (elem.css('div.t::text').get(), elem.css('div.i::text').get()) 
+                for elem in estate_attr[0].css('div.c')
+            ]
+            attributes_list.extend(temp_attr_dict)
+
+        estate_item = RealEstateItem()
+        estate_item['address'] = response.css('div.loc a::text').get()
+        estate_item['price_usd'] = price_seller_list[2].css('::text').get()
+        estate_item['price_amd'] = price_seller_list[3].css('::text').get()
+        estate_item['price_rub'] = price_seller_list[4].css('::text').get()
+        estate_item['seller'] = price_seller_list[5].css('::text').get()
+        estate_item['seller_id'] = response.css('div#uinfo a').attrib['href'].split('/')[-1]
+        estate_item['description'] = description_text
+        estate_item['placesby'] = placesby_text
+        estate_item['posted_date'] = posted_date
+        estate_item['renewed_date'] = renewed_date
+        estate_item['attributes'] = attributes_list
+
+        yield estate_item
 
         
