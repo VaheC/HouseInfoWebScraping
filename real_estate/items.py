@@ -35,3 +35,4 @@ class RealEstateItem(scrapy.Item):
     renovation = scrapy.Field()
     appliances = scrapy.Field()
     window_views = scrapy.Field()
+    estate_id = scrapy.Field()
